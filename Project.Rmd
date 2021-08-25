@@ -1,0 +1,542 @@
+---
+title: "Group 13 R Code"
+output: pdf_document
+---
+
+## Setup ##
+```{r Setup, warning = FALSE}
+setwd("C:/NUS/Y2S1/BT2101/GitHub Group Project/bt2101_project")
+data <- read.table("C:/NUS/Y2S1/BT2101/GitHub Group Project/bt2101_project/card.csv", sep=",", 
+                   skip=2, header=FALSE)
+header <- scan("C:/NUS/Y2S1/BT2101/GitHub Group Project/bt2101_project/card.csv", sep=",", 
+               nlines=2, what=character()) 
+colnames(data) <- header[26:50]
+#removing ID column
+data <- data[-1]
+#renaming default_payment_next_month column to default
+colnames(data)[24] <- 'default'
+#renaming PAY_0 to PAY_1
+colnames(data)[6] <- 'PAY_1'
+```
+
+
+## Checking Missing Data & Duplicate Data ##
+```{r Checking Missing Data & Duplicate Data, warning=FALSE}
+library(dplyr)
+sum(is.na(data))
+sum(duplicated(data))
+dup <- data[duplicated(data) | duplicated(data, fromLast = TRUE),]
+dup[order(dup$LIMIT_BAL,dup$AGE),]
+```
+
+
+## Changing Categorical Attributes to Factors ##
+```{r Changing Catergorical Attributes to Factors, warning=FALSE}
+data2 <- data
+factors <- c('SEX','EDUCATION','MARRIAGE','PAY_1','PAY_2','PAY_3','PAY_4',
+             'PAY_5','PAY_6','default')
+data2[,factors] <- lapply(data2[,factors] , factor)
+```
+
+
+## Checking Correlation Between Quantitative Attributes ##
+```{r Checking Correlation Between Quantitative Attributes, warning=FALSE} 
+library(corrplot)
+res <- cor(as.matrix(data2[,c('LIMIT_BAL', 'AGE', 'BILL_AMT1', 'BILL_AMT2',
+                              'BILL_AMT3', 'BILL_AMT4','BILL_AMT5', 'BILL_AMT6',
+                              'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 
+                              'PAY_AMT5', 'PAY_AMT6')]))
+corrplot(res,method="circle", tl.cex=0.5) 
+corrplot(res,method="number", number.cex= 14/ncol(data2), tl.cex=0.4)
+```
+
+
+## Checking for Anomalies ##
+```{r Checking for Anomalies, warning=FALSE}
+summary(data2)
+#checking all the levels in PAY1-6
+levels(data2$PAY_1)
+levels(data2$PAY_2)
+levels(data2$PAY_3)
+levels(data2$PAY_4)
+levels(data2$PAY_5)
+levels(data2$PAY_6)
+```
+
+
+## Transforming Data ##
+```{r Transforming Data, warning=FALSE}
+data_t <- data2 
+data_t$EDUCATION[data_t$EDUCATION %in% c('4','5','6')] <- '0'
+data_t[,factors] <- lapply(data_t[,factors] , factor)
+summary(data_t)
+```
+
+
+## Further Exploration of Data - Defaults ##
+```{r Further Exploration of Data - Defaults, warning=FALSE}
+library(ggthemes)
+library(ggplot2)
+
+#Looking at defaults
+ggplot(data_t, aes(x=default, fill=default)) + geom_bar() + theme_excel()
+sum(data_t$default == 1)/length(data$default)
+```
+
+
+## Further Exploration of Data - Limit Balance ##
+```{r Further Exploration of Data - Limit Balance, warning=FALSE}
+#Looking at LIMIT_BAL
+ggplot(data_t, aes(x=LIMIT_BAL, fill = default), breaks=150) + 
+  geom_histogram(position='dodge') + labs(x = 'limit balance') +
+  theme_excel()
+#percentage of clients with limit balance between 31250 and 62500 that defaulted
+sum(data_t[31250<=data_t$LIMIT_BAL & data_t$LIMIT_BAL<=62500,]$default ==1)/ 
+  length(data_t[31250<=data_t$LIMIT_BAL & data_t$LIMIT_BAL<=62500,]$default)
+```
+
+
+## Further Exploration of Data - Education ##
+```{r Further Exploration of Data - Education, warning=FALSE}
+#Looking at EDUCATION
+ggplot(data_t, aes(x=EDUCATION, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position =
+              position_dodge(0.9), vjust=-0.15) + labs(x = 'education') + 
+  theme_excel()
+#count()#percentage of defaults in each category of Education
+sum(data_t[data_t$EDUCATION == 0,]$default ==1) / length(data_t[data_t$EDUCATION 
+                                                                == 0,]$default)
+sum(data_t[data_t$EDUCATION == 1,]$default ==1) / length(data_t[data_t$EDUCATION
+                                                                == 1,]$default)
+sum(data_t[data_t$EDUCATION == 2,]$default ==1) / length(data_t[data_t$EDUCATION 
+                                                                == 2,]$default)
+sum(data_t[data_t$EDUCATION == 3,]$default ==1) / length(data_t[data_t$EDUCATION 
+                                                                == 3,]$default)
+```
+
+
+## Further Exploration of Data - Marriage ##
+```{r Further Exploration of Data - Marriage, warning=FALSE}
+#Looking at Marriage
+ggplot(data_t, aes(x=MARRIAGE, fill = default)) + geom_bar(position='dodge') +
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9),
+            vjust=-0.15) + labs(x = 'marriage') + theme_excel()
+sum(data_t[data_t$MARRIAGE == 0,]$default ==1) / length(data_t[data_t$MARRIAGE 
+                                                               == 0,]$default)
+sum(data_t[data_t$MARRIAGE == 1,]$default ==1) / length(data_t[data_t$MARRIAGE 
+                                                               == 1,]$default)
+sum(data_t[data_t$MARRIAGE == 2,]$default ==1) / length(data_t[data_t$MARRIAGE 
+                                                               == 2,]$default)
+sum(data_t[data_t$MARRIAGE == 3,]$default ==1) / length(data_t[data_t$MARRIAGE 
+                                                               == 3,]$default)
+```
+
+
+## Further Exploration of Data - Age ##
+```{r Further Exploration of Data - Age, warning=FALSE}
+#Looking at AGE
+ggplot(data_t, aes(x=AGE, freq  = 2, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'Age')
+```
+
+
+## Further Exploration of Data - Payment Status ##
+```{r Further Exploration of Data - Payment Status, warning=FALSE}
+#looking at PAY1
+ggplot(data_t, aes(x=PAY_1, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9), 
+            vjust=-0.15, size=2.5) + labs(x = 'September') + theme_excel()
+#looking at PAY2
+ggplot(data_t, aes(x=PAY_2, fill = default)) + geom_bar(position='dodge') +   
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9),
+            vjust=-0.15, size=2.5) + labs(x = 'August') + theme_excel()
+#looking at PAY3
+ggplot(data_t, aes(x=PAY_3, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9),
+            vjust=-0.15, size=2.5) + labs(x = 'July') + theme_excel()
+#looking at PAY4
+ggplot(data_t, aes(x=PAY_4, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9), 
+            vjust=-0.15, size=2.5) + labs(x = 'June') + theme_excel()
+#looking at PAY5
+ggplot(data_t, aes(x=PAY_5, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9), 
+            vjust=-0.15, size=2.5) + labs(x = 'May') + theme_excel()
+#looking at PAY6
+ggplot(data_t, aes(x=PAY_6, fill = default)) + geom_bar(position='dodge') + 
+  geom_text(aes(label=..count..), stat="count", position=position_dodge(0.9),
+            vjust=-0.15, size=2.5) + labs(x = 'April') + theme_excel()
+```
+
+
+## Further Exploration of Data - Bill Amount ##
+```{r Further Exploration of Data - Bill Amount, warning=FALSE}
+#looking at BILL_AMT1
+ggplot(data_t, aes(x=BILL_AMT1, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'September') + theme_excel()
+#looking at BILL_AMT2
+ggplot(data_t, aes(x=BILL_AMT2, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'August') + theme_excel()
+#looking at BILL_AMT3
+ggplot(data_t, aes(x=BILL_AMT3, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'July') + theme_excel()
+#looking at BILL_AMT4
+ggplot(data_t, aes(x=BILL_AMT4, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'June') + theme_excel()
+#looking at BILL_AMT5
+ggplot(data_t, aes(x=BILL_AMT5, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'May') + theme_excel()
+#looking at BILL_AMT6
+ggplot(data_t, aes(x=BILL_AMT6, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'April') + theme_excel()
+```
+
+ 
+## Further Exploration of Data - Paid Amount ##
+```{r Further Exploration of Data - Paid Amount, warning=FALSE}
+#looking at PAY_AMT1
+ggplot(data_t, aes(x=PAY_AMT1, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'September') + theme_excel()
+#looking at PAY_AMT2
+ggplot(data_t, aes(x=PAY_AMT2, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'August') + theme_excel()
+#looking at PAY_AMT3
+ggplot(data_t, aes(x=PAY_AMT3, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'July') + theme_excel()
+#looking at PAY_AMT4
+ggplot(data_t, aes(x=PAY_AMT4, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'June') + theme_excel()
+#looking at PAY_AMT5
+ggplot(data_t, aes(x=PAY_AMT5, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'May') + theme_excel()
+#looking at PAY_AMT6
+ggplot(data_t, aes(x=PAY_AMT6, fill = default)) + 
+  geom_histogram(position='dodge') + labs(x = 'April') + theme_excel()
+```
+
+
+## Splitting into Test and Train Data ##
+```{r Splitting into Test and Train Data, warning=FALSE}
+set.seed(111)
+n = nrow(data_t)
+index <- 1:nrow(data_t)
+testindex <- sample(index, trunc(n)/4) 
+test.data <- data_t[testindex,] 
+train.data <- data_t[-testindex,]
+```
+
+
+## Standardising Training Data ##
+```{r Standardising Training Data, warning=FALSE}
+
+data_s <- train.data
+data_s$LIMIT_BAL<-scale(train.data$LIMIT_BAL)
+data_s$AGE<-scale(train.data$AGE)
+data_s$BILL_AMT1<-scale(train.data$BILL_AMT1)
+data_s$BILL_AMT2<-scale(train.data$BILL_AMT2)
+data_s$BILL_AMT3<-scale(train.data$BILL_AMT3)
+data_s$BILL_AMT4<-scale(train.data$BILL_AMT4)
+data_s$BILL_AMT5<-scale(train.data$BILL_AMT5)
+data_s$BILL_AMT6<-scale(train.data$BILL_AMT6)
+data_s$PAY_AMT1<-scale(train.data$PAY_AMT1)
+data_s$PAY_AMT2<-scale(train.data$PAY_AMT2)
+data_s$PAY_AMT3<-scale(train.data$PAY_AMT3)
+data_s$PAY_AMT4<-scale(train.data$PAY_AMT4)
+data_s$PAY_AMT5<-scale(train.data$PAY_AMT5)
+data_s$PAY_AMT6<-scale(train.data$PAY_AMT6)
+```
+
+
+## PCA Transformation ##
+```{r PCA Transformation & Analysis, warning=FALSE}
+data_s_pca <- prcomp(data_s[,c(1,5,12:23)], center = TRUE, scale. = TRUE)
+summary(data_s_pca)
+str(data_s_pca)
+
+library(ggfortify)
+autoplot(data_s_pca, data = data_s, colour = 'default',
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+```
+
+
+## T.test Function ##
+```{r T.test Function, warning=FALSE}
+train.class <- train.data$default
+tmatrix <- matrix(0,23,2) 
+for (i in 1:23){ 
+  x <- train.data[,i]
+  results <- t.test(as.numeric(x) ~ train.class, var.equal= TRUE) 
+  tmatrix[i,1] =results$statistic
+  tmatrix[i,2] = results$p.value
+}
+df <- data.frame(tmatrix[,1],tmatrix[,2],names(data)[1:23]) 
+names(df) <- c("t-value","p-value","attribute")
+df
+```
+
+
+## Feature selection using Stepwise backward regression ##
+```{r Feature selection using Stepwise backward regression, warning=FALSE}
+library(leaps)
+Outbackward <- regsubsets(train.class ~ ., data = train.data[, -24], 
+                          method = "backward")
+summary(Outbackward)
+plot(Outbackward,scale="r2")
+```
+
+
+## Feature selection using Stepwise forward regression ##
+```{r Feature selection using Stepwise forward regression, warning=FALSE}
+library(leaps)
+Outforward <- regsubsets(train.class ~ ., data = train.data[, -24],
+                         method = "forward")
+summary(Outforward)
+summary(Outforward)
+plot(Outforward,scale="r2")
+```
+
+
+## Chi-square statistic for Categorical Attribute ##
+```{r Chi-square statistic for Categorical Attribute, warning=FALSE}
+chistat <- matrix(0,23,2) 
+issue <- rep(" ",23)
+col <- ncol(train.data) - 1
+class <- as.factor(train.data[,24])
+for (I in 1: col) {
+  x <- train.data[,I]
+  tbl <- table(x,class)
+  chi2res <- chisq.test(tbl) 
+  chistat[I,1] <- chi2res$statistic
+  chistat[I,2] <- chi2res$p.value 
+}
+df <- data.frame(chistat[,1:2],names(data)[1:23]) 
+names(df) <- c("chi2 stat","p-value","issue") 
+df
+df[order(df[,1]),]
+```
+
+
+## Decision Tree - CART ##
+```{r Decision Tree - CART, warning=FALSE}
+library(partykit)
+library(rpart)
+library(rpart.plot)
+cart.tree1 <- rpart(class~., data=train.data[names(data)[1:23]], model=TRUE, 
+                    method='class', control = rpart.control(cp = 0.001))
+cart1.fit <- predict(cart.tree1,data=train.data[names(data)[1:23]],type="class") 
+table(cart1.fit,class)
+rpart.plot(cart.tree1)
+summary(cart.tree1)
+```
+
+
+## Decision Tree - C5 ##
+```{r Decision Tree - C5, warning=FALSE}
+library(C50)
+C50tree <- C5.0( class ~ .,data= train.data[names(data)[1:23]])
+summary(C50tree)
+
+```
+
+
+## Load libraries ##
+```{r Load libraries, warning=FALSE}
+library(caret)
+library(ipred)
+library(randomForest)
+library(gbm)
+library(InformationValue)
+library(naivebayes)
+library(nnet)
+library(e1071)
+library(pROC)
+
+```
+
+
+## Creating the formula for Modelling ##
+```{r Creating the formula for Modelling, warning=FALSE}
+formula <- as.formula(default ~ PAY_1 + PAY_3)
+formula
+
+```
+
+
+## chi-square test to check correlation ##
+```{r chi-square test to check correlation, warning=FALSE}
+table1 <- table(train.data$PAY_1, train.data$PAY_3)
+chisq.test(table1)
+
+```
+
+
+## Ensemble Method - Bagging ##
+```{r Ensemble Method - Bagging, warning=FALSE}
+
+set.seed(111)
+bagging <- bagging(formula, data = train.data, nbagg = 50, coob = TRUE)
+
+fittedTrain <- predict(bagging, data = train.data[c("PAY_1","PAY_3")])
+fittedTrainProb <- predict(bagging, data = train.data[c("PAY_1","PAY_3")], 
+                           type = "prob")
+actualTrain <- train.data$default
+trainMatrix <- caret::confusionMatrix(fittedTrain, actualTrain, positive = '1')
+trainMatrix
+
+fittedTest <- predict(bagging, newdata = test.data[c("PAY_1","PAY_3")])
+fittedTestProb <- predict(bagging, newdata = test.data[c("PAY_1","PAY_3")], 
+                          type = 'prob')
+actualTest <- test.data$default
+testMatrix <- caret::confusionMatrix(fittedTest, actualTest, positive = '1')
+testMatrix
+
+#ROC#
+
+training.probs <- predict(bagging, newdata = train.data[c("PAY_1","PAY_3")], 
+                          type = "prob")
+plotROC(actuals=actualTrain,predictedScores=training.probs[,2])
+
+test.probs <- predict(bagging, newdata = test.data[c("PAY_1","PAY_3")], 
+                      type = "prob")
+plotROC(actuals=actualTest,predictedScores=test.probs[,2])
+
+```
+
+
+## Ensemble Method - Random Forest ##
+```{r Ensemble Method - Random Forest, warning=FALSE}
+
+set.seed(111)
+rf <- randomForest(formula, data = train.data)
+
+fittedTrain <- predict(rf, data = train.data[c("PAY_1","PAY_3")]) 
+actualTrain <- train.data$default
+trainMatrix <- caret::confusionMatrix(fittedTrain, actualTrain, positive = '1')
+trainMatrix
+
+
+fittedTest <- predict(rf, newdata = test.data[c("PAY_1","PAY_3")]) 
+actualTest <- test.data$default
+testMatrix <- caret::confusionMatrix(fittedTest, actualTest, positive = '1')
+testMatrix
+
+
+#ROC#
+
+fittedTrainProb <- predict(rf, data = train.data[c("PAY_1","PAY_3")], 
+                           type = "prob") 
+plotROC(actuals = actualTrain, predictedScores = fittedTrainProb[,2])
+
+fittedTestProb <- predict(rf, newdata = test.data[c("PAY_1","PAY_3")], 
+                          type = "prob")
+plotROC(actuals = actualTest, predictedScores = fittedTestProb[,2])
+
+```
+
+ 
+## Naive Bayes ##
+```{r Naive Bayes, warning=FALSE}
+
+set.seed(111)
+nb <- naive_bayes(formula , data = train.data, laplace = 0.1)
+
+fittedTrain <- predict(nb, data = train.data[c("PAY_1","PAY_3")], 
+                       type = "class")
+actualTrain <- train.data$default
+trainMatrix <- caret::confusionMatrix(fittedTrain, actualTrain, positive = '1')
+trainMatrix
+
+fittedTest <- predict(nb, newdata = test.data[c("PAY_1","PAY_3")], 
+                      type = "class")
+actualTest <- test.data$default
+testMatrix <- caret::confusionMatrix(fittedTest, actualTest, positive = '1')
+testMatrix
+
+#ROC#
+
+fittedTrain1 <- predict(nb, data = train.data[c("PAY_1","PAY_3")], 
+                        type = "prob")
+fittedTest1 <- predict(nb, newdata = test.data[c("PAY_1","PAY_3")], 
+                       type = "prob")
+
+plotROC(actuals = actualTrain, predictedScores = fittedTrain1[,2])
+plotROC(actuals = actualTest, predictedScores = fittedTest1[,2])
+
+```
+
+
+## Logistic Regression ##
+```{r Logistic Regression, warning=FALSE}
+
+set.seed(111)
+logReg <- glm(formula , data = train.data, family = "binomial")
+
+train.pred <- predict(logReg, data = train.data[c("PAY_1","PAY_3")],
+                      type = "response")
+actualTrain <- train.data$default
+optCutTrain <- optimalCutoff(actualTrain, train.pred, 
+                             optimiseFor="misclasserror")
+fittedTrain <- as.factor(ifelse(train.pred < optCutTrain, 0, 1))
+trainMatrix <- caret::confusionMatrix(fittedTrain, actualTrain, positive = '1')
+trainMatrix
+
+test.pred <- predict(logReg, newdata = test.data[c("PAY_1","PAY_3")], 
+                     type = "response")
+actualTest <- test.data$default
+optCutTest <- optimalCutoff(actualTest, test.pred, 
+                             optimiseFor="misclasserror")
+fittedTest <- as.factor(ifelse(test.pred < optCutTest, 0, 1))
+testMatrix <- caret::confusionMatrix(fittedTest, actualTest, positive = '1')
+testMatrix
+
+#ROC#
+
+#train set
+plotROC(actuals = actualTrain, predictedScores = train.pred)
+
+#test set
+plotROC(actuals = actualTest, predictedScores = test.pred)
+
+
+```
+
+
+## SVM ##
+```{r SVM, warning=FALSE}
+
+set.seed(111)
+svm.model <- svm(formula, data = train.data, type = "C-classification", 
+                 kernel = "linear")
+
+fittedTrain <- predict(svm.model, data = train.data[c("PAY_1","PAY_3")])
+actualTrain <- train.data$default
+trainMatrix <- caret::confusionMatrix(fittedTrain, actualTrain, positive = '1')
+trainMatrix
+
+fittedTest <- predict(svm.model, newdata = test.data[c("PAY_1","PAY_3")])
+actualTest <- test.data$default
+testMatrix <- caret::confusionMatrix(fittedTest, actualTest, positive = '1')
+testMatrix
+
+#ROC#
+
+fittedTrain1 <- predict(svm.model, newdata = train.data[c("PAY_1","PAY_3")], 
+                        type = "prob")
+plotROC(actuals=actualTrain,predictedScores=as.numeric(fittedTrain1))
+
+fittedTest1 <- predict(svm.model, newdata = test.data[c("PAY_1","PAY_3")], 
+                       type = "prob")
+plotROC(actuals=actualTest,predictedScores=as.numeric(fittedTest1))
+
+```
+
+
+
+
+
+
+
+
+
+
